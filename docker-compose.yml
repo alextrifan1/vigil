@@ -1,0 +1,10 @@
+services:
+  vigil:
+    build: .
+    container_name: vigil
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/30 8-18 * * 1-5}

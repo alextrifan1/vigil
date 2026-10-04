@@ -1,0 +1,18 @@
+{
+  "name": "vigil",
+  "version": "1.0.0",
+  "description": "Quietly monitors UBB practice boards and dispatches telemetry to Discord",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  }
+}
