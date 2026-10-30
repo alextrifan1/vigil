@@ -5,7 +5,8 @@ const { sweep, createSweepRunner } = require('../src/sweep');
 
 const silentLog = { log() {}, warn() {}, error() {} };
 
-const newStats = () => ({ sweeps: 0, failedSweeps: 0, alerts: 0, lastSweepAt: null, lastPostCount: 0, trackedCount: 0 });
+const { createStats } = require('../src/stats');
+const newStats = createStats;
 const post = (id) => ({ id, url: id, title: `Post ${id}`, category: 'Licență', date: '01.10.2026' });
 
 /** In-memory replacement for the state file. */
