@@ -1,5 +1,5 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
+const { parsePosts, mergeBoards, paresePosts} = require('./parse');
 
 const TARGETS = [
     {
@@ -21,50 +21,27 @@ const HTTP_CLIENT = axios.create({
     }
 });
 
-async function fetchCategoryPosts(target) {
-    const {data: html} = await HTTP_CLIENT.get(target.url);
-    const $ = cheerio.load(html);
-    const posts = [];
-
-    $('#content .post-wrap > .post').each((_, el) => {
-        const $post = $(el);
-        const $link = $post.find('h2.title a').first();
-        const url = $link.attr('href')?.trim();
-        if (!url) return;
-
-        posts.push({
-            id: url, // keep URL as ID so the existing seen_posts.json stays valid
-            postId: $post.attr('id') || null, // e.g. "post-69438"
-            url,
-            title: $link.text().trim(),
-            category: target.name,
-            date: $post.find('.meta_date').first().text().trim() || 'Recent'
-        });
-    });
-
-    if (posts.length === 0) {
-        console.warn(`[Vigil Scraper] 0 posts parsed on ${target.name}. Page layout may have changed.`);
-    }
-    return posts;
+async function fetchHtml(url) {
+    const { data } = await HTTP_CLIENT.get(url);
+    return data;
 }
 
 async function scrapeAll() {
-    const byId = new Map();
+    const postLists = [];
+
     for (const target of TARGETS) {
         try {
-            for (const post of await fetchCategoryPosts(target)) {
-                const existing = byId.get(post.id);
-                if (existing) {
-                    existing.category = `${existing.category} + ${post.category}`;
-                } else {
-                    byId.set(post.id, post);
-                }
+            const posts = paresePosts(await fetchHtml(target.url), target.name);
+            if (posts.length === 0) {
+                console.warn(`[Vigil Scraper] 0 posts parsed on ${target.name}. Page layout may have changed.`);
             }
+            postLists.push(posts);
         } catch (err) {
             console.error(`[Vigil Scraper Error] ${target.name} (${target.url}): ${err.message}`);
         }
     }
-    return [...byId.values()];
+
+    return mergeBoards(postLists);
 }
 
 module.exports = { scrapeAll };
