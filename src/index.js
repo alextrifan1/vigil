@@ -42,15 +42,19 @@ async function sweep() {
     let newPostsCount = 0;
 
     for (const post of currentPosts) {
-        if (!seenPosts.has(post.id)) {
+
+        if (seenPosts.has(post.id)) continue;
+
+        if (isColdStart) {
             seenPosts.add(post.id);
             newPostsCount++;
+            continue;
+        }
 
-            if (isColdStart) {
-                continue;
-            }
-
-            await sendDiscordNotification(WEBHOOK_URL, post);
+        const sent = sendDiscordNotification(WEBHOOK_URL, post);
+        if (sent) {
+            seenPosts.add(post.id);
+            newPostsCount++;
         }
     }
 
@@ -69,6 +73,6 @@ sweep().catch(console.error);
 // Recurring sweep
 cron.schedule(CRON_SCHEDULE, () => {
     sweep().catch(console.error);
-});
+}, { timezone: 'Europe/Bucharest' });
 
 console.log(`[Vigil Online] Polling armed on schedule: "${CRON_SCHEDULE}"`);

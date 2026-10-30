@@ -26,42 +26,45 @@ async function fetchCategoryPosts(target) {
     const $ = cheerio.load(html);
     const posts = [];
 
-    $('h2 a, h3 a').each((_, el) => {
-        const link = $(el).attr('href');
-        const title = $(el).text().trim();
-
-        if (!link || !link.startsWith('http') || link.includes('/tag/') || link.includes('/category/')) {
-            return;
-        }
-
-        const container = $(el).closest('article, .post, .entry, div');
-        const containerText = container.text();
-        const dateMatch = containerText.match(/\b\d{2}\.\d{2}\.\d{4}\b/);
-        const date = dateMatch ? dateMatch[0] : 'Recent';
+    $('#content .post-wrap > .post').each((_, el) => {
+        const $post = $(el);
+        const $link = $post.find('h2.title a').first();
+        const url = $link.attr('href')?.trim();
+        if (!url) return;
 
         posts.push({
-            id: link.trim(),
-            url: link.trim(),
-            title,
+            id: url, // keep URL as ID so the existing seen_posts.json stays valid
+            postId: $post.attr('id') || null, // e.g. "post-69438"
+            url,
+            title: $link.text().trim(),
             category: target.name,
-            date
+            date: $post.find('.meta_date').first().text().trim() || 'Recent'
         });
     });
 
+    if (posts.length === 0) {
+        console.warn(`[Vigil Scraper] 0 posts parsed on ${target.name}. Page layout may have changed.`);
+    }
     return posts;
 }
 
 async function scrapeAll() {
-    const results = [];
+    const byId = new Map();
     for (const target of TARGETS) {
         try {
-            const posts = await fetchCategoryPosts(target);
-            results.push(...posts);
+            for (const post of await fetchCategoryPosts(target)) {
+                const existing = byId.get(post.id);
+                if (existing) {
+                    existing.category = `${existing.category} + ${post.category}`;
+                } else {
+                    byId.set(post.id, post);
+                }
+            }
         } catch (err) {
             console.error(`[Vigil Scraper Error] ${target.name} (${target.url}): ${err.message}`);
         }
     }
-    return results;
+    return [...byId.values()];
 }
 
 module.exports = { scrapeAll };

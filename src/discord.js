@@ -33,8 +33,10 @@ async function sendDiscordNotification(webhookUrl, post) {
         });
         console.log(`[Vigil Alert Dispatched] [${post.category}] ${post.title}`);
         await sleep(1000); // Guard against rate-limit bursts
+        return true;
     } catch (err) {
         console.error(`[Vigil Discord Error] Failed for ${post.url}:`, err.response?.data || err.message);
+        return false;
     }
 }
 
