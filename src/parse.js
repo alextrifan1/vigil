@@ -5,7 +5,7 @@ const cheerio = require('cheerio');
  *  #content > .post-wrap > .post > h2.title a   (title + link)
  *  .postmeta-primary .meta_date (publication date)
  */
-function paresePosts(html, boardName) {
+function parsePosts(html, boardName) {
     const $ = cheerio.load(html);
     const posts = [];
 
@@ -47,4 +47,4 @@ function mergeBoards(postLists) {
     return [...byId.values()];
 }
 
-module.exports = { paresePosts, mergeBoards};
+module.exports = { parsePosts, mergeBoards};

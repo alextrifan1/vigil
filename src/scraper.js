@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { parsePosts, mergeBoards, paresePosts} = require('./parse');
+const { parsePosts, mergeBoards } = require('./parse');
 
 const TARGETS = [
     {
@@ -31,7 +31,7 @@ async function scrapeAll() {
 
     for (const target of TARGETS) {
         try {
-            const posts = paresePosts(await fetchHtml(target.url), target.name);
+            const posts = parsePosts(await fetchHtml(target.url), target.name);
             if (posts.length === 0) {
                 console.warn(`[Vigil Scraper] 0 posts parsed on ${target.name}. Page layout may have changed.`);
             }
