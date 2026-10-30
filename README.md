@@ -1,116 +1,67 @@
 # Vigil
 
-Vigil is a lightweight Node.js daemon that monitors the UBB FMI practice announcement boards for both Bachelor's and Master's tracks. When a new opportunity is published, it sends a rich embed alert to a Discord channel through an incoming webhook, and once a week it reports that it is still running.
+![CI](https://github.com/alextrifan1/vigil/actions/workflows/ci.yml/badge.svg)
 
----
+A small Node.js daemon that watches the UBB FMI practice boards ([Licență](https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/) and [Master](https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/)) and posts new announcements to Discord.
 
 ## Features
 
-- **New-post alerts**: Each new announcement is sent as a Discord embed with its title, link, board and publication date.
-- **Cold-start protection**: On the first run, existing posts are indexed silently, so you don't get a burst of notifications.
-- **No lost alerts**: A post is marked as seen only after Discord accepts the message. If a send fails, it is retried on the next sweep.
-- **Cross-posted announcements**: Posts that appear on both boards are sent once, labelled `Licență + Master`.
-- **Weekly heartbeat**: A weekly report with sweep, alert and uptime stats. It turns orange when something looks wrong, for example when no posts could be parsed.
-- **Persistent state**: Seen posts are stored in a volume-mounted JSON file and written atomically, so they survive container restarts.
-- **Lightweight footprint**: Runs in a small Alpine-based Docker image as a non-root user.
+- Discord alert for every new post (title, link, board, date)
+- No spam on first run: existing posts are indexed silently
+- Failed alerts are retried on the next sweep
+- Posts on both boards are sent once, labelled `Licență + Master`
+- Weekly heartbeat report; orange when something looks wrong
 
----
+## Setup
 
-## Target Sources
-
-- **Licență**: [anunturi-practica](https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/)
-- **Master**: [anunturi-practica-nivel-master](https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/)
-
----
-
-## Configuration
-
-Create a `.env` file in the project root:
+Create `.env` in the project root:
 
 ```env
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/.../...
-CRON_SCHEDULE=*/30 8-18 * * 1-5
-HEARTBEAT_SCHEDULE=0 9 * * 1
 ```
 
-| Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `DISCORD_WEBHOOK_URL` | Yes | (none) | Discord incoming webhook. Vigil exits on startup if it is missing. |
-| `CRON_SCHEDULE` | No | `*/30 8-18 * * 1-5` | When to check the boards. Every 30 minutes, Monday to Friday, 08:00–18:00. |
-| `HEARTBEAT_SCHEDULE` | No | `0 9 * * 1` | When to send the weekly report. Monday at 09:00. |
+| Variable | Default | |
+| --- | --- | --- |
+| `DISCORD_WEBHOOK_URL` | (required) | Discord webhook |
+| `CRON_SCHEDULE` | `*/30 8-18 * * 1-5` | When to check the boards |
+| `HEARTBEAT_SCHEDULE` | `0 9 * * 1` | When to send the weekly report |
 
-All schedules use standard 5-field cron syntax and run in **Europe/Bucharest** time, regardless of the host or container timezone.
+Schedules run in **Europe/Bucharest** time. Invalid values stop Vigil at startup with a clear error.
 
----
-
-## Running with Docker
+## Run
 
 ```bash
-git clone https://github.com/alextrifan1/vigil.git
-cd vigil
-
-# Build and run in the background
-docker compose up -d --build
-
-# View logs
-docker compose logs -f
-
-# Stop the container
-docker compose down
+docker compose up -d --build   # Docker
+pnpm install && pnpm start     # locally (Node 20+)
 ```
 
-## Running locally
-
-Requires Node.js 20+ and pnpm (`corepack enable` if pnpm isn't installed).
+## Test
 
 ```bash
-pnpm install
-pnpm start
+pnpm test
 ```
 
----
-
-## Weekly Heartbeat
-
-Every week Vigil posts a report to the same channel with:
-
-- number of sweeps and alerts since the last report
-- number of tracked posts
-- time of the last sweep
-- process uptime (a low uptime means the container restarted recently)
-
-The report is **green** when everything looks normal and **orange** when no sweeps ran, a sweep failed, or the last sweep found 0 posts (usually a sign the board's layout changed).
-
-If a weekly report doesn't arrive at all, Vigil (or the machine it runs on) is down.
-
----
-
-## Data Persistence
-
-State is stored in `./data/seen_posts.json`, mounted at `/app/data` inside the container.
-
-To reset the index and force a cold start:
+Tests use Node's built-in runner and run in CI on every push. Inline variables override `.env`, which helps when testing by hand:
 
 ```bash
-docker compose down
-rm -f data/seen_posts.json
-docker compose up -d
+CRON_SCHEDULE="* * * * *" HEARTBEAT_SCHEDULE="* * * * *" pnpm start
 ```
 
----
+## Structure
 
-## Testing Tips
-
-Values set inline override `.env`, which makes quick tests easy:
-
-```bash
-# Sweep every minute
-CRON_SCHEDULE="* * * * *" pnpm start
-
-# Get a heartbeat report every minute
-HEARTBEAT_SCHEDULE="* * * * *" pnpm start
+```
+src/
+  index.js     wiring and scheduling
+  config.js    env parsing and validation
+  sweep.js     core logic (new posts, cold start, retries)
+  parse.js     HTML → posts (pure)
+  embeds.js    Discord embeds (pure)
+  scraper.js   fetches the boards
+  discord.js   sends to the webhook
+  state.js     seen posts on disk
+  stats.js     heartbeat counters
 ```
 
-To simulate a new announcement, delete one URL from `data/seen_posts.json` while Vigil is running. The next sweep should send exactly one alert.
+## State
 
-Use a separate Discord channel and webhook for testing.
+Seen posts are stored in `data/seen_posts.json` (mounted into the container). Delete it to force a fresh cold start.
