@@ -3,20 +3,27 @@ const path = require('path');
 const cron = require('node-cron');
 require('dotenv').config();
 
+const { loadConfig } = require('./config');
 const { scrapeAll } = require('./scraper');
 const { sendDiscordNotification, sendHeartbeat } = require('./discord');
 
-const DATA_DIR = path.join(__dirname, '../data');
-const STATE_FILE = path.join(DATA_DIR, 'seen_posts.json');
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '*/30 8-18 * * 1-5';
-const HEARTBEAT_SCHEDULE = process.env.HEARTBEAT_SCHEDULE || '0 9 * * 1';
-const TIMEZONE = 'Europe/Bucharest';
-
-if (!WEBHOOK_URL) {
-    console.error('[Vigil] DISCORD_WEBHOOK_URL is required.');
+let config;
+try {
+    config = loadConfig();
+} catch (err) {
+    console.error(`[Vigil Config]\n${err.message}`);
     process.exit(1);
 }
+
+
+const {
+    webhookUrl: WEBHOOK_URL,
+    cronSchedule: CRON_SCHEDULE,
+    heartbeatSchedule: HEARTBEAT_SCHEDULE,
+    timezone: TIMEZONE,
+    stateFile: STATE_FILE
+} = config;
+const DATA_DIR = path.dirname(STATE_FILE);
 
 const stats = {
     sweeps: 0,
@@ -54,7 +61,7 @@ async function sweep() {
 
     const seenPosts = loadSeenPosts();
     const isColdStart = seenPosts.size === 0;
-    const currentPosts = await scrapeAll();
+    const currentPosts = await scrapeAll(config.targets);
     stats.lastPostCount = currentPosts.length;
 
     let newPostsCount = 0;

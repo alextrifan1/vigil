@@ -1,17 +1,6 @@
 const axios = require('axios');
 const { parsePosts, mergeBoards } = require('./parse');
 
-const TARGETS = [
-    {
-        name: 'Licență',
-        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/'
-    },
-    {
-        name: 'Master',
-        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/'
-    }
-];
-
 const HTTP_CLIENT = axios.create({
     timeout: 15000,
     headers: {
@@ -26,10 +15,10 @@ async function fetchHtml(url) {
     return data;
 }
 
-async function scrapeAll() {
+async function scrapeAll(targets) {
     const postLists = [];
 
-    for (const target of TARGETS) {
+    for (const target of targets) {
         try {
             const posts = parsePosts(await fetchHtml(target.url), target.name);
             if (posts.length === 0) {
