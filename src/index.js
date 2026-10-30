@@ -6,6 +6,7 @@ require('dotenv').config();
 const { loadConfig } = require('./config');
 const { scrapeAll } = require('./scraper');
 const { sendDiscordNotification, sendHeartbeat } = require('./discord');
+const { sweep, createSweepRunner } = require('./sweep');
 
 let config;
 try {
@@ -14,7 +15,6 @@ try {
     console.error(`[Vigil Config]\n${err.message}`);
     process.exit(1);
 }
-
 
 const {
     webhookUrl: WEBHOOK_URL,
@@ -56,61 +56,15 @@ function saveSeenPosts(seenSet) {
     fs.renameSync(tmpFile, STATE_FILE);
 }
 
-async function sweep() {
-    console.log(`[${new Date().toISOString()}] Vigil sweep initiated...`);
+// Wire the real dependencies into the sweep
+const state = { load: loadSeenPosts, save: saveSeenPosts };
+const scrape = () => scrapeAll(config.targets);
+const notify = (post) => sendDiscordNotification(WEBHOOK_URL, post);
 
-    const seenPosts = loadSeenPosts();
-    const isColdStart = seenPosts.size === 0;
-    const currentPosts = await scrapeAll(config.targets);
-    stats.lastPostCount = currentPosts.length;
-
-    let newPostsCount = 0;
-
-    for (const post of currentPosts) {
-        if (seenPosts.has(post.id)) continue;
-
-        if (isColdStart) {
-            seenPosts.add(post.id);
-            newPostsCount++;
-            continue;
-        }
-
-        const sent = await sendDiscordNotification(WEBHOOK_URL, post);
-        if (sent) {
-            seenPosts.add(post.id);
-            newPostsCount++;
-            stats.alerts++;
-        }
-    }
-
-    saveSeenPosts(seenPosts);
-    stats.sweeps++;
-    stats.lastSweepAt = new Date();
-    stats.trackedCount = seenPosts.size;
-
-    if (isColdStart) {
-        console.log(`[Vigil Cold Start] Baseline established. Indexed ${seenPosts.size} existing announcements.`);
-    } else {
-        console.log(`[Vigil Sweep Complete] ${newPostsCount} new item(s) found. Total tracked: ${seenPosts.size}.`);
-    }
-}
-
-let sweeping = false;
-const runSweep = async () => {
-    if (sweeping) {
-        console.warn('[Vigil] Previous sweep still running. Skipping this tick.');
-        return;
-    }
-    sweeping = true;
-    try {
-        await sweep();
-    } catch (err) {
-        stats.failedSweeps++;
-        console.error(err);
-    } finally {
-        sweeping = false;
-    }
-};
+const runSweep = createSweepRunner(
+    () => sweep({ scrape, notify, state, stats }),
+    stats
+);
 
 runSweep();
 cron.schedule(CRON_SCHEDULE, runSweep, { timezone: TIMEZONE });
