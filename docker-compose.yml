@@ -3,9 +3,16 @@ services:
     build: .
     container_name: vigil
     restart: unless-stopped
+    init: true
+    mem_limit: 128m
     volumes:
       - ./data:/app/data
     environment:
       - HEARTBEAT_SCHEDULE=${HEARTBEAT_SCHEDULE:-0 9 * * 1}
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
       - CRON_SCHEDULE=${CRON_SCHEDULE:-*/30 8-18 * * 1-5}
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
