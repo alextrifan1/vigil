@@ -12,8 +12,32 @@ const COLORS = {
     warning: 0xE67E22 // orange
 };
 
+const EXCERPT_LENGTH = 300;
+
+/** Hard cut for titles (Discord allows 256 characters). */
 function truncate(text, max) {
     return text.length > max ? `${text.substring(0, max - 3)}...` : text;
+}
+
+/** Shortens text to at most `max` characters, cutting at a word boundary. */
+function truncateWords(text, max) {
+    if (text.length <= max) return text;
+    const cut = text.slice(0, max - 1);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${lastSpace > 0 ? cut.slice(0, lastSpace) : cut}…`;
+}
+
+/**
+ * Feed posts have an exact time: shown as a Discord timestamp, which every viewer
+ * sees in their own timezone, plus a relative "x minutes ago".
+ * HTML-fallback posts only have a date string.
+ */
+function formatPublished(post) {
+    if (post.publishedAt) {
+        const unix = Math.floor(post.publishedAt.getTime() / 1000);
+        return `<t:${unix}:f> (<t:${unix}:R>)`;
+    }
+    return post.date || 'Recent';
 }
 
 function buildPostEmbed(post, now = new Date()) {
@@ -21,10 +45,12 @@ function buildPostEmbed(post, now = new Date()) {
         title: truncate(post.title, 250),
         url: post.url,
         color: post.category.includes('Master') ? COLORS.master : COLORS.licenta,
-        description: `New posting detected on the **${post.category}** practice board.`,
+        description: post.excerpt
+            ? truncateWords(post.excerpt, EXCERPT_LENGTH)
+            : `New posting detected on the **${post.category}** practice board.`,
         fields: [
             { name: 'Board', value: post.category, inline: true },
-            { name: 'Date', value: post.date, inline: true }
+            { name: 'Published', value: formatPublished(post), inline: true }
         ],
         footer: FOOTER,
         timestamp: now.toISOString()
@@ -48,7 +74,9 @@ function heartbeatWarnings(stats) {
 
 function buildHeartbeatEmbed(stats, uptimeSeconds, now = new Date()) {
     const warnings = heartbeatWarnings(stats);
-    const lastSweep = stats.lastSweepAt ? `<t:${Math.floor(stats.lastSweepAt.getTime() / 1000)}:R>` : 'never';
+    const lastSweep = stats.lastSweepAt
+        ? `<t:${Math.floor(stats.lastSweepAt.getTime() / 1000)}:R>`
+        : 'never';
 
     return {
         title: warnings.length ? 'Vigil weekly report: needs attention' : 'Vigil weekly report: all good',
@@ -66,4 +94,12 @@ function buildHeartbeatEmbed(stats, uptimeSeconds, now = new Date()) {
     };
 }
 
-module.exports = { buildPostEmbed, buildHeartbeatEmbed, heartbeatWarnings, formatUptime, COLORS };
+module.exports = {
+    buildPostEmbed,
+    buildHeartbeatEmbed,
+    heartbeatWarnings,
+    formatUptime,
+    formatPublished,
+    truncateWords,
+    COLORS
+};

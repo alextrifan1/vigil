@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildPostEmbed, buildHeartbeatEmbed, heartbeatWarnings, formatUptime, COLORS } = require('../src/embeds');
+const { buildPostEmbed, buildHeartbeatEmbed, heartbeatWarnings, formatUptime, formatPublished, truncateWords, COLORS } = require('../src/embeds');
 
 const NOW = new Date('2026-10-30T12:00:00Z');
 const post = { id: 'u', url: 'https://x.ro/p', title: 'Practică', category: 'Master', date: '01.10.2026' };
@@ -15,9 +15,40 @@ test('post embed contains title, link, board and date', () => {
     assert.equal(embed.url, 'https://x.ro/p');
     assert.deepEqual(embed.fields, [
         { name: 'Board', value: 'Master', inline: true },
-        { name: 'Date', value: '01.10.2026', inline: true }
+        { name: 'Published', value: '01.10.2026', inline: true }
     ]);
     assert.equal(embed.timestamp, '2026-10-30T12:00:00.000Z');
+});
+
+test('the excerpt becomes the description', () => {
+    const embed = buildPostEmbed({ ...post, excerpt: 'Stagiu de practică pe backend Java.' });
+    assert.equal(embed.description, 'Stagiu de practică pe backend Java.');
+});
+
+test('without an excerpt, the description names the board', () => {
+    assert.match(buildPostEmbed({ ...post, excerpt: '' }).description, /\*\*Master\*\* practice board/);
+});
+
+test('long excerpts are cut at a word boundary with …', () => {
+    const embed = buildPostEmbed({ ...post, excerpt: 'cuvânt '.repeat(100).trim() });
+    assert.ok(embed.description.length <= 300);
+    assert.ok(embed.description.endsWith('cuvânt…'), embed.description.slice(-20));
+});
+
+test('truncateWords leaves short text alone and hard-cuts a single giant word', () => {
+    assert.equal(truncateWords('scurt', 300), 'scurt');
+    assert.equal(truncateWords('a'.repeat(20), 10), `${'a'.repeat(9)}…`);
+});
+
+test('feed posts show a Discord timestamp, absolute and relative', () => {
+    const publishedAt = new Date('2026-07-28T08:26:12Z');
+    const unix = publishedAt.getTime() / 1000;
+    assert.equal(formatPublished({ ...post, publishedAt }), `<t:${unix}:f> (<t:${unix}:R>)`);
+});
+
+test('HTML posts show their date, or "Recent" if there is none', () => {
+    assert.equal(formatPublished({ ...post, publishedAt: null, date: '28.07.2026' }), '28.07.2026');
+    assert.equal(formatPublished({ ...post, publishedAt: null, date: null }), 'Recent');
 });
 
 test('Master and cross-posted items are gold, Licență is grey', () => {

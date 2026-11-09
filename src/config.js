@@ -4,11 +4,13 @@ const cron = require('node-cron');
 const TARGETS = [
     {
         name: 'Licență',
-        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/'
+        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/',
+        feedUrl: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica/feed/'
     },
     {
         name: 'Master',
-        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/'
+        url: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/',
+        feedUrl: 'https://www.cs.ubbcluj.ro/anunturi/anunturi-studenti/anunturi-practica-nivel-master/feed/'
     }
 ];
 

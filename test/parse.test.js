@@ -32,6 +32,7 @@ test('snapshot: every post has a title and a dd.mm.yyyy date', () => {
 
 test('snapshot: post IDs are unique', () => {
     const ids = parsePosts(snapshot, 'Licență').map((p) => p.id);
+    for (const id of ids) assert.match(id, /^post-\d+$/);
     assert.equal(new Set(ids).size, ids.length);
 });
 
@@ -55,14 +56,13 @@ test('ignores links in excerpts, the sidebar and the header', () => {
 
 test('extracts every field of a post', () => {
     const [first] = parsePosts(board, 'Master');
-    assert.deepEqual(first, {
-        id: 'https://www.cs.ubbcluj.ro/practica-backend-java-2026/',
-        postId: 'post-69438',
-        url: 'https://www.cs.ubbcluj.ro/practica-backend-java-2026/',
-        title: 'Practică Backend Java – Acme Software',
-        category: 'Master',
-        date: '28.07.2026'
-    });
+    assert.equal(first.id, 'post-69438');
+    assert.equal(first.url, 'https://www.cs.ubbcluj.ro/practica-backend-java-2026/');
+    assert.equal(first.title, 'Practică Backend Java – Acme Software');
+    assert.equal(first.category, 'Master');
+    assert.equal(first.date, '28.07.2026');
+    assert.equal(first.publishedAt, null);
+    assert.match(first.excerpt, /^Acme Software oferă stagii/);
 });
 
 test('trims whitespace around titles', () => {

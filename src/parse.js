@@ -1,5 +1,45 @@
 const cheerio = require('cheerio');
 
+
+function decodeHtml(text) {
+    return cheerio.load(text).text();
+}
+
+function idFromGuid(guid) {
+    const match = guid.match(/[?&]p=(\d+)/);
+    return match ? `post-${match[1]}` : null;
+}
+
+/**
+ * Extracts posts from a board's RSS feed. Pure: XML in, posts out, no network.
+ */
+
+function parseFeed(xml, boardName) {
+    const $ = cheerio.load(xml, {xml: true});
+    const posts = [];
+
+    $('channel > item').each((_, el) => {
+        const $item = $(el);
+        const url = $item.children('link').text().trim();
+        if (!url) return;
+
+        const published = new Date($item.children('pubDate').text().trim());
+
+        posts.push({
+            id: idFromGuid($item.children('guid').text()) || url,
+            url,
+            title: $item.children('title').text().trim(),
+            category: boardName,
+            publishedAt: Number.isNaN(published.getTime()) ? null : published,
+            date: null,
+            excerpt: decodeHtml($item.children('description').text()).replace(/\s+/g, ' ').trim()
+        });
+    });
+
+    return posts;
+}
+
+
 /**
  * Extracts posts from one board page
  *  #content > .post-wrap > .post > h2.title a   (title + link)
@@ -16,12 +56,13 @@ function parsePosts(html, boardName) {
         if (!url) return;
 
         posts.push({
-            id: url,
-            postId: $post.attr('id') || null,
+            id: $post.attr('id') || url, // "post-69438", same as the feed
             url,
             title: $link.text().trim(),
             category: boardName,
-            date: $post.find('.meta_date').first().text().trim() || 'Recent'
+            publishedAt: null,
+            date: $post.find('.meta_date').first().text().trim() || 'Recent',
+            excerpt: $post.find('.entry').first().text().replace(/\s+/g, ' ').trim()
         });
     });
 
@@ -47,4 +88,4 @@ function mergeBoards(postLists) {
     return [...byId.values()];
 }
 
-module.exports = { parsePosts, mergeBoards};
+module.exports = { parseFeed, parsePosts, mergeBoards};
