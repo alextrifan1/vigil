@@ -4,10 +4,12 @@ const cron = require('node-cron');
 const { loadConfig } = require('./config');
 const { createFileState } = require('./state');
 const { createStats, resetPeriod, isHealthy } = require('./stats');
-const { createHealthcheck } = require('./healthcheck');
 const { scrapeAll } = require('./scraper');
 const { sendDiscordNotification, sendHeartbeat } = require('./discord');
 const { sweep, createSweepRunner } = require('./sweep');
+const { createHealthcheck } = require('./healthcheck');
+
+// Entry point: only wiring and scheduling live here. All logic is in the modules.
 
 let config;
 try {
@@ -27,11 +29,6 @@ const runSweep = createSweepRunner(async () => {
     await sweep({ scrape, notify, state, stats });
     if (isHealthy(stats)) await healthcheck.ping();
 }, stats);
-
-const runSweep = createSweepRunner(
-    () => sweep({ scrape, notify, state, stats }),
-    stats
-);
 
 runSweep();
 cron.schedule(config.cronSchedule, runSweep, { timezone: config.timezone });
