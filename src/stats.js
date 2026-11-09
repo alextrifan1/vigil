@@ -21,4 +21,9 @@ function resetPeriod(stats) {
     stats.alerts = 0;
 }
 
-module.exports = { createStats, resetPeriod }
+/** A sweep is healthy when it found posts. 0 posts means the boards failed or the parser broke. */
+function isHealthy(stats) {
+    return stats.lastPostCount > 0;
+}
+
+module.exports = { createStats, resetPeriod, isHealthy };

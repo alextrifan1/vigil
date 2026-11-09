@@ -3,7 +3,8 @@ const cron = require('node-cron');
 
 const { loadConfig } = require('./config');
 const { createFileState } = require('./state');
-const { createStats, resetPeriod } = require('./stats');
+const { createStats, resetPeriod, isHealthy } = require('./stats');
+const { createHealthcheck } = require('./healthcheck');
 const { scrapeAll } = require('./scraper');
 const { sendDiscordNotification, sendHeartbeat } = require('./discord');
 const { sweep, createSweepRunner } = require('./sweep');
@@ -20,6 +21,12 @@ const stats = createStats();
 const state = createFileState(config.stateFile);
 const scrape = () => scrapeAll(config.targets);
 const notify = (post) => sendDiscordNotification(config.webhookUrl, post);
+const healthcheck = createHealthcheck(config.healthcheckUrl);
+
+const runSweep = createSweepRunner(async () => {
+    await sweep({ scrape, notify, state, stats });
+    if (isHealthy(stats)) await healthcheck.ping();
+}, stats);
 
 const runSweep = createSweepRunner(
     () => sweep({ scrape, notify, state, stats }),
@@ -34,4 +41,4 @@ cron.schedule(config.heartbeatSchedule, async () => {
     if (ok) resetPeriod(stats);
 }, { timezone: config.timezone });
 
-console.log(`[Vigil Online] Sweep: "${config.cronSchedule}" | Heartbeat: "${config.heartbeatSchedule}"`);
+console.log(`[Vigil Online] Sweep: "${config.cronSchedule}" | Heartbeat: "${config.heartbeatSchedule}" | Healthcheck: ${healthcheck.enabled ? 'on' : 'off'}`);

@@ -29,16 +29,21 @@ const DEFAULTS = {
 function loadConfig(env = process.env) {
     const config = {
         webhookUrl: env.DISCORD_WEBHOOK_URL,
+        healthcheckUrl: env.HEALTHCHECK_URL || null,
         cronSchedule: env.CRON_SCHEDULE || DEFAULTS.cronSchedule,
         heartbeatSchedule: env.HEARTBEAT_SCHEDULE || DEFAULTS.heartbeatSchedule,
         timezone: DEFAULTS.timezone,
         stateFile: DEFAULTS.stateFile,
         targets: TARGETS
+
     };
 
     const errors = [];
     if (!config.webhookUrl) {
         errors.push('DISCORD_WEBHOOK_URL is required.');
+    }
+    if (config.healthcheckUrl && !config.healthcheckUrl.startsWith('https://')) {
+        errors.push(`HEALTHCHECK_URL must be an https:// URL: "${config.healthcheckUrl}"`);
     }
     if (!cron.validate(config.cronSchedule)) {
         errors.push(`CRON_SCHEDULE is not a valid cron expression: "${config.cronSchedule}"`);
