@@ -2,7 +2,7 @@ require('dotenv').config();
 const cron = require('node-cron');
 
 const { loadConfig } = require('./config');
-const { createFileState } = require('./state');
+const { createSqliteStore } = require('./store');
 const { createStats, resetPeriod, isHealthy } = require('./stats');
 const { scrapeAll } = require('./scraper');
 const { sendDiscordNotification, sendHeartbeat } = require('./discord');
@@ -20,13 +20,13 @@ try {
 }
 
 const stats = createStats();
-const state = createFileState(config.stateFile);
+const store = createSqliteStore(config.dbFile, { legacyJsonPath: config.legacyStateFile });
 const scrape = () => scrapeAll(config.targets);
 const notify = (post) => sendDiscordNotification(config.webhookUrl, post);
 const healthcheck = createHealthcheck(config.healthcheckUrl);
 
 const runSweep = createSweepRunner(async () => {
-    await sweep({ scrape, notify, state, stats });
+    await sweep({ scrape, notify, state: store, history: store, stats });
     if (isHealthy(stats)) await healthcheck.ping();
 }, stats);
 
@@ -37,5 +37,14 @@ cron.schedule(config.heartbeatSchedule, async () => {
     const ok = await sendHeartbeat(config.webhookUrl, { ...stats, uptimeSeconds: process.uptime() });
     if (ok) resetPeriod(stats);
 }, { timezone: config.timezone });
+
+// Close the database cleanly when Docker stops the container (SIGTERM) or on Ctrl+C (SIGINT).
+for (const signal of ['SIGTERM', 'SIGINT']) {
+    process.on(signal, () => {
+        console.log(`[Vigil] ${signal} received. Closing database and exiting.`);
+        store.close();
+        process.exit(0);
+    });
+}
 
 console.log(`[Vigil Online] Sweep: "${config.cronSchedule}" | Heartbeat: "${config.heartbeatSchedule}" | Healthcheck: ${healthcheck.enabled ? 'on' : 'off'}`);

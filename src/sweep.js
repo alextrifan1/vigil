@@ -6,19 +6,22 @@
  *   notify(post)  -> Promise<boolean>   (true = Discord accepted it)
  *   state         -> { load(): Set, save(Set) }
  *   stats         -> heartbeat counters
+ *   history       -> optional { record(post[]) }: keeps every post seen, for the archive
  *
  * Rules:
  *   - Empty state = cold start: index everything, send nothing.
  *   - A post is marked seen only after a successful notify, so failures retry next sweep.
  */
 
-async function sweep({scrape, notify, state, stats, log = console}) {
+async function sweep({ scrape, notify, state, stats, history = null, log = console }) {
     log.log(`[${new Date().toISOString()}] Vigil sweep initiated...`);
 
     const seenPosts = state.load();
     const isColdStart = seenPosts.size === 0;
     const currentPosts = await scrape();
     stats.lastPostCount = currentPosts.length;
+
+    if (history) history.record(currentPosts);
 
     let newPostsCount = 0;
 

@@ -125,3 +125,35 @@ test('runner can run again after a failed sweep', async () => {
 
     assert.equal(runs, 2); // the `finally` reset the flag
 });
+
+
+// --- history ---
+
+/** Fake history: remembers every batch it was given. */
+function fakeHistory() {
+    const batches = [];
+    return { batches, record: (posts) => batches.push(posts.map((p) => p.id)) };
+}
+
+test('records every scraped post in the history, including ones whose alert failed', async () => {
+    const history = fakeHistory();
+    await sweep({
+        scrape: async () => [post('a'), post('b'), post('c')],
+        notify: fakeNotify((p) => p.id !== 'b'),
+        state: memoryState(['a']),
+        stats: newStats(),
+        history,
+        log: silentLog
+    });
+    assert.deepEqual(history.batches, [['a', 'b', 'c']]);
+});
+
+test('records the history on cold start too', async () => {
+    const history = fakeHistory();
+    await sweep({ scrape: async () => [post('a')], notify: fakeNotify(), state: memoryState(), stats: newStats(), history, log: silentLog });
+    assert.deepEqual(history.batches, [['a']]);
+});
+
+test('history is optional', async () => {
+    await assert.doesNotReject(() => run({ posts: [post('a')], seen: ['x'] }));
+});

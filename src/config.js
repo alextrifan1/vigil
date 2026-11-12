@@ -18,7 +18,8 @@ const DEFAULTS = {
     cronSchedule: '*/30 8-18 * * 1-5',
     heartbeatSchedule: '0 9 * * 1',
     timezone: 'Europe/Bucharest',
-    stateFile: path.join(__dirname, '../data/seen_posts.json')
+    dbFile: path.join(__dirname, '../data/vigil.db'),
+    legacyStateFile: path.join(__dirname, '../data/seen_posts.json')
 };
 
 
@@ -33,7 +34,8 @@ function loadConfig(env = process.env) {
         cronSchedule: env.CRON_SCHEDULE || DEFAULTS.cronSchedule,
         heartbeatSchedule: env.HEARTBEAT_SCHEDULE || DEFAULTS.heartbeatSchedule,
         timezone: DEFAULTS.timezone,
-        stateFile: DEFAULTS.stateFile,
+        dbFile: DEFAULTS.dbFile,
+        legacyStateFile: DEFAULTS.legacyStateFile,
         targets: TARGETS
 
     };
