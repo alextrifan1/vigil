@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+  <style>
+    .ink { fill: #fbfbf9; }
+    .ring { fill: none; stroke: #fbfbf9; stroke-width: 1; }
+    @media (prefers-color-scheme: light) {
+      .ink { fill: #050505; }
+      .ring { stroke: #050505; }
+    }
+  </style>
+  <circle class="ink" cx="5" cy="5" r="4"/>
+  <circle cx="15" cy="5" r="4" fill="#e02c24"/>
+  <circle class="ink" cx="25" cy="5" r="4"/>
+  <circle class="ink" cx="15" cy="15" r="4"/>
+  <circle class="ink" cx="15" cy="25" r="4"/>
+  <circle class="ring" cx="5" cy="15" r="3.5"/>
+  <circle class="ring" cx="25" cy="15" r="3.5"/>
+  <circle class="ring" cx="5" cy="25" r="3.5"/>
+  <circle class="ring" cx="25" cy="25" r="3.5"/>
+</svg>

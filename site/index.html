@@ -1,34 +1,84 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Vigil: practice offers archive</title>
+    <title>Vigil · Practice archive</title>
+    <meta name="description" content="Every practice and internship offer posted on the UBB FMI Licență and Master boards, collected by Vigil.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Doto:wght@900&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400&display=swap">
+
+    <link rel="stylesheet" href="dotline.css">
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
 </head>
 <body>
-<h1>Vigil archive</h1>
-<p id="summary">Loading…</p>
-<ul id="posts"></ul>
+<header class="dl-header">
+    <div class="dl-header-bar">
+        <a class="dl-header-brand" href="./">
+            <svg class="dl-mark" viewBox="0 0 30 30" width="24" height="24" fill="currentColor" aria-hidden="true">
+                <circle cx="5" cy="5" r="4"/>
+                <circle cx="15" cy="5" r="4" fill="var(--signal, #e02c24)"/>
+                <circle cx="25" cy="5" r="4"/>
+                <circle cx="15" cy="15" r="4"/>
+                <circle cx="15" cy="25" r="4"/>
+                <g fill="none" stroke="currentColor" stroke-width="1">
+                    <circle cx="5" cy="15" r="3.5"/>
+                    <circle cx="25" cy="15" r="3.5"/>
+                    <circle cx="5" cy="25" r="3.5"/>
+                    <circle cx="25" cy="25" r="3.5"/>
+                </g>
+            </svg>
+            Vigil
+        </a>
+        <div class="dl-header-end">
+            <a class="dl-header-link" href="https://github.com/alextrifan1/vigil">GitHub</a>
+        </div>
+    </div>
+</header>
 
-<script>
-    fetch('archive.json')
-        .then((response) => response.json())
-        .then((archive) => {
-            document.getElementById('summary').textContent =
-                `${archive.count} posts, updated ${new Date(archive.generatedAt).toLocaleString('ro-RO')}`;
-            const list = document.getElementById('posts');
-            for (const post of archive.posts.slice(0, 20)) {
-                const item = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = post.url;
-                link.textContent = post.title;
-                item.append(link);
-                list.append(item);
-            }
-        })
-        .catch(() => {
-            document.getElementById('summary').textContent = 'Could not load the archive.';
-        });
-</script>
+<div class="vg-hero">
+    <div class="vg-container">
+        <p class="vg-label">UBB FMI // Practice boards</p>
+        <h1>Practice archive</h1>
+        <p class="vg-summary" id="summary">Offers from the Licență and Master boards, collected by Vigil and updated every hour.</p>
+    </div>
+</div>
+
+<main class="vg-container vg-main">
+    <section class="vg-toolbar" aria-label="Filter by board">
+        <div class="vg-filter" role="group" aria-label="Board">
+            <span class="vg-label" aria-hidden="true">Board</span>
+            <button type="button" class="dl-btn dl-btn-sm dl-btn-raised" data-board="all" aria-pressed="true">All</button>
+            <button type="button" class="dl-btn dl-btn-sm dl-btn-ghost" data-board="licenta" aria-pressed="false">Licență</button>
+            <button type="button" class="dl-btn dl-btn-sm dl-btn-ghost" data-board="master" aria-pressed="false">Master</button>
+        </div>
+        <div class="vg-legend vg-label" aria-hidden="true">
+            <span><span class="dl-dots"><span class="dl-dot"></span></span>One board</span>
+            <span><span class="dl-dots"><span class="dl-dot"></span><span class="dl-dot"></span></span>Both boards</span>
+        </div>
+    </section>
+
+    <div class="vg-archive" id="archive" aria-live="polite">
+        <p class="vg-status">Loading offers…</p>
+    </div>
+
+    <noscript>
+        <p class="vg-status">This page needs JavaScript to show the archive.</p>
+    </noscript>
+</main>
+
+<footer class="vg-footer">
+    <div class="vg-container">
+        <span class="vg-label">Vigil // data from cs.ubbcluj.ro // <span id="updated">updated hourly</span></span>
+        <a class="dl-link" href="https://github.com/alextrifan1/vigil">
+            <span>Source on GitHub</span>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6"/></svg>
+        </a>
+    </div>
+</footer>
 </body>
 </html>
