@@ -1,0 +1,67 @@
+name: pages.yml
+on:
+
+jobs:
+name: Archive
+
+on:
+  schedule:
+    - cron: '17 * * * *'   # every hour, at :17
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        env:
+          SSH_KEY: ${{ secrets.ARCHIVE_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/archive_key
+          chmod 600 ~/.ssh/archive_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Fetch archive from the server
+        env:
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: ssh -i ~/.ssh/archive_key -o StrictHostKeyChecking=yes -o BatchMode=yes "$DEPLOY_USER@$DEPLOY_HOST" > site/archive.json
+
+      - name: Check the archive before publishing
+        run: |
+          node -e "
+            const a = require('./site/archive.json');
+            if (!Array.isArray(a.posts) || a.count !== a.posts.length || a.count === 0) {
+              console.error('Archive looks wrong, not publishing.');
+              process.exit(1);
+            }
+            console.log(a.count + ' posts, generated ' + a.generatedAt);
+          "
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
