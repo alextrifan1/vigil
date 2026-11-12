@@ -32,6 +32,7 @@ function createSqliteStore(dbPath, { legacyJsonPath = null, now = () => new Date
     }
     const db = new DatabaseSync(dbPath);
     db.exec('PRAGMA journal_mode = WAL');
+    db.exec('PRAGMA busy_timeout = 5000');
     db.exec(SCHEMA);
 
     const selectSeen = db.prepare('SELECT id FROM seen');

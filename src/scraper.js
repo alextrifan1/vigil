@@ -49,4 +49,4 @@ async function scrapeAll(targets, { fetch = fetchText, log = console } = {}) {
     return mergeBoards(postLists);
 }
 
-module.exports = { scrapeAll };
+module.exports = { scrapeAll, fetchText };
